@@ -5,6 +5,25 @@ This repo contains instructions and scripts to generate data, analyze, and plot 
 The GRN inference pipeline implemented here is modular, one can use specific functions to calculate MI quantities based on kNN and integrate the output matrix into a different inference algorithm than the ones implemented here.<br>
 ![GRN inference pipeline:](/GRN_inference_pipeline.svg)<br>
 
+### Prerequisite - Creating a python virtual environment and installing dependencies:<br>
+#### Install venv
+sudo apt install python3.8-venv
+
+#### In your project folder run the command below. venv will create a virtual Python installation in the env folder.
+python3 -m venv env
+
+#### Activating a virtual environment will put the virtual environment-specific python and pip executables into your shell’s PATH.
+source env/bin/activate
+
+#### Confirm you are using the python environment
+which python
+
+#### Tell pip to install all packages in the requirements file (for specific python project)
+python3 -m pip install -r requirements.txt
+
+#### Leaving the virtual environment when done
+deactivate<br>
+
 ### Simulating/generating gene expression data:<br>
 The software GeneNetWeaver used to generate the datasets in the current study is available in the GitHub repository, [https://github.com/tschaffter/genenetweaver](https://github.com/tschaffter/genenetweaver)<br>
 We used our Jupyter notebook [Generate_replicates_for_network_inference.ipynb](/CODE/Generate_replicates_for_network_inference.ipynb) to call GeneNetWeaver to generate multiple replicates of steady-state and time-series gene expression datasets for realistic in silico networks of sizes of 50, and 100 genes containing various experimental conditions (knockouts, knockdowns, multifactorial perturbation, etc.).<br>
