@@ -15,7 +15,7 @@ def Entropy(X,bins_num,mi_est):
     bins_num = number of bins, and can accept any value allowed by the histogram func.
     mi_est = MI estimator of choice. Can be Shannon's (a.k.a naive, empirical) or Miller-Madaw
     """
-    hist1dvar, bin_edges1d = np.histogram(X, bins=bins_num ,normed=False)
+    hist1dvar, bin_edges1d = np.histogram(X, bins=bins_num, density=False)
     product = hist1dvar/hist1dvar.sum()*np.log(hist1dvar/hist1dvar.sum())
     product[np.isnan(product)] = 0
     if mi_est == "Shannon":    
@@ -25,7 +25,7 @@ def Entropy(X,bins_num,mi_est):
 
 
 def Entropy2var(X,Y,bins_num,mi_est): # each arg is array of floats
-    hist2d, Xedges, Yedges = np.histogram2d(X, Y, bins=bins_num,normed=False)
+    hist2d, Xedges, Yedges = np.histogram2d(X, Y, bins=bins_num, density=False)
     product = hist2d/hist2d.sum()*np.log(hist2d/hist2d.sum())
     product[np.isnan(product)] = 0
     if mi_est == "Shannon":
@@ -36,7 +36,7 @@ def Entropy2var(X,Y,bins_num,mi_est): # each arg is array of floats
 
 def Entropy3var(X,Y,Z,bins_num,mi_est): # each arg is array of floats
     XYZ = [X, Y, Z]
-    hist3d, edges = np.histogramdd(XYZ, bins = (bins_num, bins_num, bins_num), normed=False)
+    hist3d, edges = np.histogramdd(XYZ, bins = (bins_num, bins_num, bins_num), density=False)
     product = hist3d/hist3d.sum()*np.log(hist3d/hist3d.sum())
     product[np.isnan(product)] = 0    
     if mi_est == "Shannon":
