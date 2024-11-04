@@ -22,21 +22,6 @@ import scipy.io
 import Mutual_Info_based_binning_module as MI_FB_mod
 import Mutual_Info_KNN_nats_module as MI_KNN_mod
 
-# Save path to where data will be stored
-# path_to_data = os.path.expanduser('~/DATA/MI_comparison_FB_vs_KNN/')
-project_directory = os.getcwd().split('CODE')[0]
-path_to_data = f"{project_directory}/DATA/MI_comparison_FB_vs_KNN/"
-
-# Global constants initialization
-corr_list = [0.3, 0.6, 0.9]
-nTot_list = [100, 1000, 10000]
-# nTot_list = [100, 250]  # debug
-iterations = 100
-# iterations = 3  # debug
-max_num_of_bins = 101
-k_max = 10  # k-NN
-random_seed = 13  # np.random.seed(13)  # CHANGE ME IF NEEDED
-
 
 def run_MI_FB_2d(iterations, corr_list, nTot_list, max_num_of_bins, rand_seed=13, mi_est="Shannon"):
     """
@@ -129,13 +114,13 @@ def run_MI_FB_3d(iterations, corr_list, nTot_list, max_num_of_bins, rand_seed=13
                     #     m[0][:nTot], m[1][:nTot], m[2][:nTot], num_of_bins)
 
                     # Calculating from entropies - this is faster when calculating all 3D MI quantities
-                    Ex = MI_FB_mod.entropy(m[0][:nTot], num_of_bins, mi_est)
-                    Ey = MI_FB_mod.entropy(m[1][:nTot], num_of_bins, mi_est)
-                    Ez = MI_FB_mod.entropy(m[2][:nTot], num_of_bins, mi_est)
-                    Exy = MI_FB_mod.entropy2var(m[0][:nTot], m[1][:nTot], num_of_bins, mi_est)
-                    Exz = MI_FB_mod.entropy2var(m[0][:nTot], m[2][:nTot], num_of_bins, mi_est)
-                    Eyz = MI_FB_mod.entropy2var(m[1][:nTot], m[2][:nTot], num_of_bins, mi_est)
-                    Exyz = MI_FB_mod.entropy3var(m[0][:nTot], m[1][:nTot], m[2][:nTot], num_of_bins, mi_est)
+                    Ex = MI_FB_mod.entropy(m[0][:nTot], bins_num=num_of_bins, mi_est=mi_est)
+                    Ey = MI_FB_mod.entropy(m[1][:nTot], bins_num=num_of_bins, mi_est=mi_est)
+                    Ez = MI_FB_mod.entropy(m[2][:nTot], bins_num=num_of_bins, mi_est=mi_est)
+                    Exy = MI_FB_mod.entropy(m[0][:nTot], m[1][:nTot], bins_num=num_of_bins, mi_est=mi_est)
+                    Exz = MI_FB_mod.entropy(m[0][:nTot], m[2][:nTot], bins_num=num_of_bins, mi_est=mi_est)
+                    Eyz = MI_FB_mod.entropy(m[1][:nTot], m[2][:nTot], bins_num=num_of_bins, mi_est=mi_est)
+                    Exyz = MI_FB_mod.entropy(m[0][:nTot], m[1][:nTot], m[2][:nTot], bins_num=num_of_bins, mi_est=mi_est)
 
                     TC_bins_4d_array[c][n][num_of_bins - 2][iteration] = MI_FB_mod.total_corr_from_entropy(Ex, Ey, Ez, Exyz)
                     II_bins_4d_array[c][n][num_of_bins - 2][iteration] = MI_FB_mod.inter_info_from_entropy(Ex, Ey, Ez, Exy,
@@ -188,6 +173,22 @@ def run_MI_KNN_2d(iterations, corr_list, nTot_list, k_max=3, rand_seed=13, mi_es
     return mi2_knn_4d_array
 
 
+# Save path to where data will be stored
+# path_to_data = os.path.expanduser('~/DATA/MI_comparison_FB_vs_KNN/')
+project_directory = os.getcwd().split('CODE')[0]
+path_to_data = f"{project_directory}/DATA/MI_comparison_FB_vs_KNN/"
+
+# Global constants initialization
+corr_list = [0.3, 0.6, 0.9]
+nTot_list = [100, 1000, 10000]
+# nTot_list = [100, 250]  # debug
+iterations = 100
+# iterations = 3  # debug
+max_num_of_bins = 101
+k_max = 10  # k-NN
+random_seed = 13  # np.random.seed(13)  # CHANGE ME IF NEEDED
+
+
 # Calculate MI using fixed width binning (FB) in 2D
 mi2_bins_4d_array = run_MI_FB_2d(iterations, corr_list, nTot_list, max_num_of_bins, mi_est="Shannon")
 print(f"MI2 bins 4d array shape: {mi2_bins_4d_array.shape}")
@@ -204,12 +205,12 @@ matfile = f"{path_to_data}{dict_name}.mat"
 scipy.io.savemat(matfile, mdict={dict_name: mi2_MM_bins_4d_array})
 
 
-# Calculate MI using fixed width binning (FB) in 2D with 100 iterations
+# Calculate MI using fixed width binning (FB) in 3D with 100 iterations
 t1 = time.time()
 TC_bins_4d_array, II_bins_4d_array, CMI_bins_4d_array, MI3_bins_4d_array = run_MI_FB_3d(iterations, corr_list, nTot_list,
                                                                                         max_num_of_bins, mi_est="Shannon")
 t2 = time.time()
-print(f"Shannon FB 3D calc with 100 iterations: Run time = {t2 - t1:.2f} [sec]")
+print(f"Shannon FB 3D calc with {iterations} iterations: Run time = {t2 - t1:.2f} [sec]")
 dict_name_list = ['TC_bins_4d_array', 'II_bins_4d_array', 'CMI_bins_4d_array', 'MI3_bins_4d_array']
 data_4d_array_list = [TC_bins_4d_array, II_bins_4d_array, CMI_bins_4d_array, MI3_bins_4d_array]
 for counter, dict_name in enumerate(dict_name_list):
@@ -222,7 +223,7 @@ t1 = time.time()
 TC_bins_4d_array, II_bins_4d_array, CMI_bins_4d_array, MI3_bins_4d_array = run_MI_FB_3d(iterations, corr_list, nTot_list,
                                                                                         max_num_of_bins, mi_est="Miller-Madow")
 t2 = time.time()
-print(f"Miller-Madow FB 3D calc with 100 iterations: Run time = {t2 - t1:.2f} [sec]")
+print(f"Miller-Madow FB 3D calc with {iterations} iterations: Run time = {t2 - t1:.2f} [sec]")
 dict_name_list = ['TC_MM_bins_4d_array', 'II_MM_bins_4d_array', 'CMI_MM_bins_4d_array', 'MI3_MM_bins_4d_array']
 data_4d_array_list = [TC_bins_4d_array, II_bins_4d_array, CMI_bins_4d_array, MI3_bins_4d_array]
 for counter, dict_name in enumerate(dict_name_list):
@@ -232,7 +233,7 @@ for counter, dict_name in enumerate(dict_name_list):
 
 # 2D KNN multiple iterations
 t1 = time.time()
-mi2_knn_KSG_4d_array = run_MI_KNN_2d(iterations, corr_list, nTot_list, k_max=10, rand_seed=13, mi_est="KSG")
+mi2_knn_KSG_4d_array = run_MI_KNN_2d(iterations, corr_list, nTot_list, k_max=k_max, rand_seed=random_seed, mi_est="KSG")
 t2 = time.time()
 print(f"2D KNN multiple iterations: Run time = {t2 - t1:.2f} [sec]")
 dict_name = 'MI2_knn_KSG_4d_array'
@@ -242,7 +243,7 @@ scipy.io.savemat(matfile, mdict={dict_name: mi2_knn_KSG_4d_array})
 
 # 2D KL-KNN
 t1 = time.time()
-mi2_knn_KL_4d_array = run_MI_KNN_2d(iterations, corr_list, nTot_list, k_max=10, rand_seed=13, mi_est="KL")
+mi2_knn_KL_4d_array = run_MI_KNN_2d(iterations, corr_list, nTot_list, k_max=k_max, rand_seed=random_seed, mi_est="KL")
 t2 = time.time()
 print(f"KL-KNN in 2D: Run time = {t2 - t1:.3f} [sec]")
 dict_name = 'MI2_knn_KL_4d_array'
