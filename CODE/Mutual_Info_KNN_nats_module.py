@@ -28,10 +28,11 @@ def entropy_knn_eq20(k, n_tot, distance_i_array, dimension):
     float: Calculated entropy.
     """
     c_d = 1  # for Chebyshev distance metric, not Euclidean
-    e_v1 = (-special.digamma(k)
-            + special.digamma(n_tot)
-            + np.log(c_d)
-            + dimension * np.average(np.log(2 * distance_i_array)))
+    with np.errstate(divide='ignore'):
+        e_v1 = (-special.digamma(k)
+                + special.digamma(n_tot)
+                + np.log(c_d)
+                + dimension * np.average(np.log(2 * distance_i_array)))
     return e_v1
 
 
@@ -50,14 +51,15 @@ def entropy_knn_eq22(n_i_array, n_tot, distance_i_array, dimension):
     float: Calculated entropy.
     """
     c_d = 1  # for Chebyshev distance metric, not Euclidean
-    e_v2 = (-np.average(special.digamma(n_i_array + 1))
-            + special.digamma(n_tot)
-            + np.log(c_d)
-            + dimension * np.average(np.log(2 * distance_i_array)))
+    with np.errstate(divide='ignore'):
+        e_v2 = (-np.average(special.digamma(n_i_array + 1))
+                + special.digamma(n_tot)
+                + np.log(c_d)
+                + dimension * np.average(np.log(2 * distance_i_array)))
     return e_v2
 
 
-def mi_knn(k, n_tot, n_x, n_y, method="calc1"):
+def mi_knn_calc(k, n_tot, n_x, n_y, method="calc1"):
     """
     Mutual information calculation using k-NN.
 
@@ -83,7 +85,7 @@ def mi_knn(k, n_tot, n_x, n_y, method="calc1"):
     return mi
 
 
-def tc_knn(k, n_tot, n_x, n_y, n_z, method="calc1"):
+def tc_knn_calc(k, n_tot, n_x, n_y, n_z, method="calc1"):
     """
     Total correlation calculation using k-NN.
 
@@ -108,13 +110,15 @@ def tc_knn(k, n_tot, n_x, n_y, n_z, method="calc1"):
     return tc
 
 
-def entropy_knn_kdtree_algo(*vecs, k_max, method="eq20"):
+def entropy_knn_kdtree_algo(*vecs, k_max=3, bins_or_neighbors=None, mi_est="KL", method="eq20"):
     """
     Generalized function to calculate entropy using k-NN KDTree algorithm for 1D, 2D, and 3D data.
 
     Parameters:
     *vecs (array-like): Variable number of 1D arrays (vec1, vec2, vec3).
     k_max (int): Maximum number of nearest neighbors.
+    bins_or_neighbors (int): Number of bins, can accept any value allowed by the histogram function. Default is None.
+    mi_est (str): MI estimator of choice. Only "KL" is implemented.
     method (str): Method to use for entropy calculation. Can be "eq20" or "eq22".
 
     Returns:
@@ -132,6 +136,8 @@ def entropy_knn_kdtree_algo(*vecs, k_max, method="eq20"):
     vec3 = np.random.rand(100)
     entropy_3d = entropy_knn_kdtree_algo(vec1, vec2, vec3, k_max=k_max)
     """
+    if bins_or_neighbors is not None:
+        k_max = bins_or_neighbors
     dimension = len(vecs)
     entropy_k = np.zeros(k_max)
     n_tot = len(vecs[0])
@@ -150,49 +156,70 @@ def entropy_knn_kdtree_algo(*vecs, k_max, method="eq20"):
 
 
 def mi_knn_kdtree_algo(vec1, vec2, k_max):
+    """
+    Calculate mutual information using k-nearest neighbors (k-NN) with KDTree.
 
-    n_tot = len(vec1)  # Assuming all vectors has the same length
+    Parameters:
+    vec1 (array-like): 1D array of floats.
+    vec2 (array-like): 1D array of floats.
+    k_max (int): Maximum number of nearest neighbors.
+
+    Returns:
+    np.ndarray: Array of mutual information values for each k.
+    """
+    n_tot = len(vec1)  # Assuming all vectors have the same length
     mi_k = np.zeros(k_max)
     pts = np.c_[vec1.ravel(), vec2.ravel()]
     tree = spatial.cKDTree(pts)
-    tree_x = spatial.cKDTree(np.c_[vec1])
-    tree_y = spatial.cKDTree(np.c_[vec2])
-    distance_array, pts_locations = tree.query(pts, k_max+1, p=np.inf)
+    tree_x = spatial.cKDTree(vec1.reshape(-1, 1))
+    tree_y = spatial.cKDTree(vec2.reshape(-1, 1))
+    distance_array, pts_locations = tree.query(pts, k_max + 1, p=np.inf)
 
-    for k in range(1, k_max+1):
+    for k in range(1, k_max + 1):
         n_x = np.zeros(n_tot, dtype=int)
         n_y = np.zeros(n_tot, dtype=int)
 
         n_x = tree_x.query_ball_point(pts[:, 0].reshape(-1, 1), distance_array[:, k], p=1,
-                                      return_sorted=False, return_length=True) - 1  # Removing self
+                                      return_length=True) - 1  # Removing self
         n_y = tree_y.query_ball_point(pts[:, 1].reshape(-1, 1), distance_array[:, k], p=1,
-                                      return_sorted=False, return_length=True) - 1  # Removing self
+                                      return_length=True) - 1  # Removing self
 
         for counter, point in enumerate(pts):
-            edge_point_axis = np.argmax([abs(point[0]-pts[pts_locations[counter, k]][0]),
-                                         abs(point[1]-pts[pts_locations[counter, k]][1])])
+            edge_point_axis = np.argmax([abs(point[0] - pts[pts_locations[counter, k]][0]),
+                                         abs(point[1] - pts[pts_locations[counter, k]][1])])
             if edge_point_axis == 0:  # 'x'
                 n_x[counter] -= 1  # Removing edge points
             else:  # 'y'
                 n_y[counter] -= 1  # Removing edge points
 
-        mi_k[k-1] = mi_knn(k, n_tot, n_x, n_y, method="calc1")
+        mi_k[k - 1] = mi_knn_calc(k, n_tot, n_x, n_y, method="calc1")
 
     return mi_k
 
 
 def tc_knn_kdtree_algo(vec1, vec2, vec3, k_max):
+    """
+    Calculate total correlation (TC) using k-nearest neighbors (k-NN) with KDTree.
 
-    n_tot = len(vec1)  # Assuming all vectors has the same length
+    Parameters:
+    vec1 (array-like): 1D array of floats.
+    vec2 (array-like): 1D array of floats.
+    vec3 (array-like): 1D array of floats.
+    k_max (int): Maximum number of nearest neighbors.
+
+    Returns:
+    np.ndarray: Array of total correlation values for each k.
+    """
+    n_tot = len(vec1)  # Assuming all vectors have the same length
     tc_k = np.zeros(k_max)
     pts = np.c_[vec1.ravel(), vec2.ravel(), vec3.ravel()]
     tree = spatial.cKDTree(pts)
-    tree_x = spatial.cKDTree(np.c_[vec1])
-    tree_y = spatial.cKDTree(np.c_[vec2])
-    tree_z = spatial.cKDTree(np.c_[vec3])
-    distance_array, pts_locations = tree.query(pts, k_max+1, p=np.inf)
+    tree_x = spatial.cKDTree(vec1.reshape(-1, 1))
+    tree_y = spatial.cKDTree(vec2.reshape(-1, 1))
+    tree_z = spatial.cKDTree(vec3.reshape(-1, 1))
+    distance_array, pts_locations = tree.query(pts, k_max + 1, p=np.inf)
 
-    for k in range(1, k_max+1):
+    for k in range(1, k_max + 1):
         n_x = np.zeros(n_tot, dtype=int)
         n_y = np.zeros(n_tot, dtype=int)
         n_z = np.zeros(n_tot, dtype=int)
@@ -205,9 +232,9 @@ def tc_knn_kdtree_algo(vec1, vec2, vec3, k_max):
                                       return_sorted=False, return_length=True) - 1  # Removing self
 
         for counter, point in enumerate(pts):
-            edge_point_axis = np.argmax([abs(point[0]-pts[pts_locations[counter, k]][0]),
-                                         abs(point[1]-pts[pts_locations[counter, k]][1]),
-                                         abs(point[2]-pts[pts_locations[counter, k]][2])])
+            edge_point_axis = np.argmax([abs(point[0] - pts[pts_locations[counter, k]][0]),
+                                         abs(point[1] - pts[pts_locations[counter, k]][1]),
+                                         abs(point[2] - pts[pts_locations[counter, k]][2])])
             if edge_point_axis == 0:  # 'x'
                 n_x[counter] -= 1  # Removing edge points
             elif edge_point_axis == 1:  # 'y'
@@ -215,6 +242,6 @@ def tc_knn_kdtree_algo(vec1, vec2, vec3, k_max):
             else:  # 'z'
                 n_z[counter] -= 1  # Removing edge points
 
-        tc_k[k-1] = tc_knn(k, n_tot, n_x, n_y, n_z, method="calc1")
+        tc_k[k - 1] = tc_knn_calc(k, n_tot, n_x, n_y, n_z, method="calc1")
 
     return tc_k
