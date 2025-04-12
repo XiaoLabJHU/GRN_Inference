@@ -33,7 +33,7 @@ deactivate
 
 ### Simulating/generating gene expression data:<br>
 The software GeneNetWeaver used to generate the datasets in the current study is available in the GitHub repository, [https://github.com/tschaffter/genenetweaver](https://github.com/tschaffter/genenetweaver)<br>
-We used our Jupyter notebook [Generate_replicates_for_network_inference.ipynb](/CODE/Generate_replicates_for_network_inference.ipynb) to call GeneNetWeaver to generate multiple replicates of steady-state and time-series gene expression datasets for realistic in silico networks of sizes of 50, and 100 genes containing various experimental conditions (knockouts, knockdowns, multifactorial perturbation, etc.).<br>
+We used our Jupyter notebook [Generate_replicates_for_network_inference.py](/CODE/Generate_replicates_for_network_inference.py) to call GeneNetWeaver to generate multiple replicates of steady-state and time-series gene expression datasets for realistic in silico networks of sizes of 50, and 100 genes containing various experimental conditions (knockouts, knockdowns, multifactorial perturbation, etc.).<br>
 We then combine all the steady-state expression data to a single file: {network name}_all.tsv<br>
 <br>
 The data we used for the paper can also be downloaded from the [DATA](/DATA/) folder in this repo.<br>
